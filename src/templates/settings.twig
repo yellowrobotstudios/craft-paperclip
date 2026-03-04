@@ -1,0 +1,197 @@
+{% import '_includes/forms' as forms %}
+
+{{ forms.selectField({
+    label: 'PDF Driver',
+    instructions: 'Choose the rendering engine for PDF generation.',
+    id: 'driver',
+    name: 'driver',
+    value: settings.driver,
+    options: driverOptions,
+    toggle: true,
+    tip: 'DOMPDF works everywhere with no dependencies. Other drivers require additional software or services.',
+}) }}
+
+<hr>
+
+{# ------ Driver Configuration (toggled by driver select) ------ #}
+{# Div IDs must match option values for Craft's built-in toggle #}
+
+<div id="dompdf" class="hidden">
+
+    <h2>DOMPDF Configuration</h2>
+    <p class="light">Pure PHP rendering. No external binaries needed.</p>
+
+    {{ forms.textField({
+        label: 'Default Font',
+        instructions: 'Default font family (e.g., "Helvetica", "DejaVu Sans"). Leave blank for DOMPDF default.',
+        id: 'dompdfDefaultFont',
+        name: 'dompdfDefaultFont',
+        value: settings.dompdfDefaultFont,
+    }) }}
+
+    {{ forms.textField({
+        label: 'Font Directory',
+        instructions: 'Path to a custom font directory. Leave blank for default.',
+        id: 'dompdfFontDir',
+        name: 'dompdfFontDir',
+        value: settings.dompdfFontDir,
+    }) }}
+
+    {{ forms.textField({
+        label: 'DPI',
+        instructions: 'Rendering resolution (default: 96). Higher values produce sharper images but larger files.',
+        id: 'dompdfDpi',
+        name: 'dompdfDpi',
+        value: settings.dompdfDpi,
+        type: 'number',
+        size: 5,
+    }) }}
+
+</div>
+
+<div id="browsershot" class="hidden">
+
+    <h2>Browsershot Configuration</h2>
+    <p class="light">Headless Chrome rendering via Node.js. Requires <code>spatie/browsershot</code> and Puppeteer.</p>
+
+    {{ forms.textField({
+        label: 'Node.js Binary',
+        instructions: 'Leave blank to use the system default.',
+        id: 'nodePath',
+        name: 'nodePath',
+        value: settings.nodePath,
+        placeholder: '/usr/local/bin/node',
+    }) }}
+
+    {{ forms.textField({
+        label: 'NPM Binary',
+        instructions: 'Leave blank to use the system default.',
+        id: 'npmPath',
+        name: 'npmPath',
+        value: settings.npmPath,
+        placeholder: '/usr/local/bin/npm',
+    }) }}
+
+    {{ forms.textField({
+        label: 'Chrome/Chromium Binary',
+        instructions: 'Leave blank to use Puppeteer\'s bundled version.',
+        id: 'chromePath',
+        name: 'chromePath',
+        value: settings.chromePath,
+    }) }}
+
+    {{ forms.lightswitchField({
+        label: 'No Sandbox Mode',
+        instructions: 'Required on some server environments (Docker, certain VPS configurations).',
+        id: 'noSandbox',
+        name: 'noSandbox',
+        on: settings.noSandbox,
+    }) }}
+
+</div>
+
+<div id="gotenberg" class="hidden">
+
+    <h2>Gotenberg Configuration</h2>
+    <p class="light">Docker-based Chromium rendering. Requires a running <a href="https://gotenberg.dev" target="_blank">Gotenberg</a> service.</p>
+
+    {{ forms.textField({
+        label: 'Service URL',
+        instructions: 'The URL of your Gotenberg instance.',
+        id: 'gotenbergUrl',
+        name: 'gotenbergUrl',
+        value: settings.gotenbergUrl,
+        placeholder: 'http://localhost:3000',
+    }) }}
+
+    {{ forms.textField({
+        label: 'Username',
+        instructions: 'For basic auth. Leave blank if not configured.',
+        id: 'gotenbergUsername',
+        name: 'gotenbergUsername',
+        value: settings.gotenbergUsername,
+    }) }}
+
+    {{ forms.passwordField({
+        label: 'Password',
+        instructions: 'For basic auth. Leave blank if not configured.',
+        id: 'gotenbergPassword',
+        name: 'gotenbergPassword',
+        value: settings.gotenbergPassword,
+    }) }}
+
+</div>
+
+<div id="cloudflare" class="hidden">
+
+    <h2>Cloudflare Configuration</h2>
+    <p class="light">Cloud-based rendering via <a href="https://developers.cloudflare.com/browser-rendering/" target="_blank">Cloudflare Browser Rendering</a>. No local dependencies.</p>
+
+    {{ forms.textField({
+        label: 'Account ID',
+        instructions: 'Your Cloudflare account ID.',
+        id: 'cloudflareAccountId',
+        name: 'cloudflareAccountId',
+        value: settings.cloudflareAccountId,
+    }) }}
+
+    {{ forms.passwordField({
+        label: 'API Token',
+        instructions: 'API token with Browser Rendering permissions.',
+        id: 'cloudflareApiToken',
+        name: 'cloudflareApiToken',
+        value: settings.cloudflareApiToken,
+    }) }}
+
+</div>
+
+<div id="weasyprint" class="hidden">
+
+    <h2>WeasyPrint Configuration</h2>
+    <p class="light">Python-based rendering with excellent CSS Paged Media support. Requires <code>pontedilana/php-weasyprint</code> and the <a href="https://weasyprint.org" target="_blank">WeasyPrint</a> binary.</p>
+
+    {{ forms.textField({
+        label: 'Binary Path',
+        instructions: 'Leave blank to use the system default.',
+        id: 'weasyprintBinary',
+        name: 'weasyprintBinary',
+        value: settings.weasyprintBinary,
+        placeholder: '/usr/bin/weasyprint',
+    }) }}
+
+</div>
+
+<hr>
+
+<h2>Defaults</h2>
+
+{{ forms.selectField({
+    label: 'Page Format',
+    instructions: 'Default paper size when none is specified in code.',
+    id: 'defaultFormat',
+    name: 'defaultFormat',
+    value: settings.defaultFormat,
+    options: [
+        { label: 'Letter', value: 'Letter' },
+        { label: 'Legal', value: 'Legal' },
+        { label: 'Tabloid', value: 'Tabloid' },
+        { label: 'Ledger', value: 'Ledger' },
+        { label: 'A0', value: 'A0' },
+        { label: 'A1', value: 'A1' },
+        { label: 'A2', value: 'A2' },
+        { label: 'A3', value: 'A3' },
+        { label: 'A4', value: 'A4' },
+        { label: 'A5', value: 'A5' },
+        { label: 'A6', value: 'A6' },
+    ],
+}) }}
+
+{{ forms.textField({
+    label: 'Timeout',
+    instructions: 'Maximum seconds to wait for PDF generation. Can be overridden per driver above.',
+    id: 'timeout',
+    name: 'timeout',
+    value: settings.timeout,
+    type: 'number',
+    size: 5,
+}) }}

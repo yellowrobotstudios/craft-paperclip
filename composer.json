@@ -1,0 +1,60 @@
+{
+    "name": "yellowrobot/craft-paperclip",
+    "description": "PDF generation for Craft CMS with 5 rendering drivers (DOMPDF, Browsershot, Gotenberg, Cloudflare, WeasyPrint)",
+    "type": "craft-plugin",
+    "license": "proprietary",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "pdf",
+        "dompdf",
+        "browsershot",
+        "gotenberg",
+        "weasyprint"
+    ],
+    "authors": [
+        {
+            "name": "Yellow Robot Studios",
+            "homepage": "https://yellowrobot.studio"
+        }
+    ],
+    "support": {
+        "docs": "https://github.com/yellowrobot/craft-paperclip",
+        "issues": "https://github.com/yellowrobot/craft-paperclip/issues"
+    },
+    "require": {
+        "php": "^8.0",
+        "craftcms/cms": "^4.0|^5.0",
+        "dompdf/dompdf": "^2.0|^3.0"
+    },
+    "suggest": {
+        "spatie/browsershot": "Required for the Browsershot driver (headless Chrome). Install with: composer require spatie/browsershot",
+        "pontedilana/php-weasyprint": "Required for the WeasyPrint driver. Install with: composer require pontedilana/php-weasyprint"
+    },
+    "require-dev": {
+        "craftcms/ecs": "dev-main",
+        "craftcms/phpstan": "dev-main"
+    },
+    "autoload": {
+        "psr-4": {
+            "yellowrobot\\paperclip\\": "src/"
+        }
+    },
+    "extra": {
+        "handle": "paperclip",
+        "name": "Paperclip",
+        "developer": "Yellow Robot Studios",
+        "developerUrl": "https://yellowrobot.studio",
+        "documentationUrl": "https://github.com/yellowrobot/craft-paperclip",
+        "class": "yellowrobot\\paperclip\\Paperclip"
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true,
+            "craftcms/plugin-installer": true
+        }
+    }
+}
