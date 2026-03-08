@@ -3,6 +3,7 @@
 namespace yellowrobot\paperclip\drivers;
 
 use Craft;
+use craft\helpers\App;
 use yellowrobot\paperclip\Paperclip;
 
 /**
@@ -115,8 +116,10 @@ class CloudflareDriver implements PdfDriverInterface
     public function render(): string
     {
         $settings = Paperclip::$plugin->getSettings();
+        $apiToken = App::parseEnv($settings->cloudflareApiToken);
+        $accountId = App::parseEnv($settings->cloudflareAccountId);
 
-        if (!$settings->cloudflareApiToken || !$settings->cloudflareAccountId) {
+        if (!$apiToken || !$accountId) {
             throw new \RuntimeException(
                 'Cloudflare Browser Rendering requires an API token and account ID. '
                 . 'Set them in the Paperclip plugin settings or config/paperclip.php.'
@@ -125,7 +128,7 @@ class CloudflareDriver implements PdfDriverInterface
 
         $endpoint = sprintf(
             'https://api.cloudflare.com/client/v4/accounts/%s/browser-rendering/pdf',
-            $settings->cloudflareAccountId
+            $accountId
         );
 
         // Build the PDF options payload
@@ -192,12 +195,12 @@ class CloudflareDriver implements PdfDriverInterface
         }
 
         $client = Craft::createGuzzleClient([
-            'timeout' => $settings->timeout,
+            'timeout' => (int) App::parseEnv($settings->timeout),
         ]);
 
         $response = $client->post($endpoint, [
             'headers' => [
-                'Authorization' => 'Bearer ' . $settings->cloudflareApiToken,
+                'Authorization' => 'Bearer ' . $apiToken,
                 'Content-Type' => 'application/json',
             ],
             'json' => $body,

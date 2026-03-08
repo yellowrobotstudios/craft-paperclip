@@ -4,10 +4,10 @@ namespace yellowrobot\paperclip\drivers;
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
-use yellowrobot\paperclip\Paperclip;
 
 class DompdfDriver implements PdfDriverInterface
 {
+    private array $driverOptions;
     private ?Dompdf $dompdf = null;
     private ?string $html = null;
     private string $format = 'letter';
@@ -16,6 +16,14 @@ class DompdfDriver implements PdfDriverInterface
     private ?array $margins = null;
     private ?string $headerHtml = null;
     private ?string $footerHtml = null;
+
+    /**
+     * @param array $options Driver options: fontDir, defaultFont, dpi
+     */
+    public function __construct(array $options = [])
+    {
+        $this->driverOptions = $options;
+    }
 
     public function loadHtml(string $html): void
     {
@@ -151,19 +159,16 @@ class DompdfDriver implements PdfDriverInterface
         $options->setIsRemoteEnabled(true);
         $options->setIsPhpEnabled(false);
 
-        // Apply plugin settings
-        $settings = Paperclip::$plugin->getSettings();
-
-        if ($settings->dompdfFontDir) {
-            $options->setFontDir($settings->dompdfFontDir);
+        if (!empty($this->driverOptions['fontDir'])) {
+            $options->setFontDir($this->driverOptions['fontDir']);
         }
 
-        if ($settings->dompdfDefaultFont) {
-            $options->setDefaultFont($settings->dompdfDefaultFont);
+        if (!empty($this->driverOptions['defaultFont'])) {
+            $options->setDefaultFont($this->driverOptions['defaultFont']);
         }
 
-        if ($settings->dompdfDpi) {
-            $options->setDpi($settings->dompdfDpi);
+        if (!empty($this->driverOptions['dpi'])) {
+            $options->setDpi($this->driverOptions['dpi']);
         }
 
         return new Dompdf($options);

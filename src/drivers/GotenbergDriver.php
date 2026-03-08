@@ -3,6 +3,7 @@
 namespace yellowrobot\paperclip\drivers;
 
 use Craft;
+use craft\helpers\App;
 use GuzzleHttp\Client;
 use yellowrobot\paperclip\Paperclip;
 
@@ -118,11 +119,11 @@ class GotenbergDriver implements PdfDriverInterface
     public function render(): string
     {
         $settings = Paperclip::$plugin->getSettings();
-        $baseUrl = rtrim($settings->gotenbergUrl ?? 'http://localhost:3000', '/');
+        $baseUrl = rtrim(App::parseEnv($settings->gotenbergUrl) ?? 'http://localhost:3000', '/');
 
         $client = Craft::createGuzzleClient([
             'base_uri' => $baseUrl,
-            'timeout' => $settings->gotenbergTimeout ?? $settings->timeout,
+            'timeout' => (int) App::parseEnv($settings->gotenbergTimeout ?? $settings->timeout),
         ]);
 
         // Build multipart form data
@@ -207,9 +208,11 @@ class GotenbergDriver implements PdfDriverInterface
 
         // Auth
         $headers = [];
-        if ($settings->gotenbergUsername && $settings->gotenbergPassword) {
+        $username = App::parseEnv($settings->gotenbergUsername);
+        $password = App::parseEnv($settings->gotenbergPassword);
+        if ($username && $password) {
             $headers['Authorization'] = 'Basic ' . base64_encode(
-                $settings->gotenbergUsername . ':' . $settings->gotenbergPassword
+                $username . ':' . $password
             );
         }
 

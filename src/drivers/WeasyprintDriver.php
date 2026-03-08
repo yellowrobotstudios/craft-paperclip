@@ -2,6 +2,7 @@
 
 namespace yellowrobot\paperclip\drivers;
 
+use craft\helpers\App;
 use yellowrobot\paperclip\Paperclip;
 
 /**
@@ -119,12 +120,13 @@ class WeasyprintDriver implements PdfDriverInterface
     public function render(): string
     {
         $settings = Paperclip::$plugin->getSettings();
-        $binaryPath = $settings->weasyprintBinary ?? 'weasyprint';
+        $binaryPath = App::parseEnv($settings->weasyprintBinary) ?? 'weasyprint';
 
         $weasyprint = new \Pontedilana\PhpWeasyPrint\Pdf($binaryPath);
 
-        if ($settings->weasyprintTimeout) {
-            $weasyprint->setTimeout($settings->weasyprintTimeout);
+        $weasyprintTimeout = App::parseEnv($settings->weasyprintTimeout);
+        if ($weasyprintTimeout) {
+            $weasyprint->setTimeout((int) $weasyprintTimeout);
         }
 
         // Prepare HTML with injected CSS for page setup

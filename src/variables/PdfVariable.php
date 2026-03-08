@@ -2,30 +2,30 @@
 
 namespace yellowrobot\paperclip\variables;
 
-use yellowrobot\paperclip\PdfBuilder;
+use yellowrobot\paperclip\CraftPdfBuilder;
 
 /**
  * Twig variable for PDF generation
  *
  * Usage in Twig:
- *   {{ craft.pdf.view('_pdfs/invoice', { order: order }).inline() }}
- *   {{ craft.pdf.html(htmlString).download('document.pdf') }}
- *   {{ craft.pdf.url('https://example.com').save('@storage/page.pdf') }}
+ *   {{ craft.paperclip.view('_pdfs/invoice', { order: order }).inline() }}
+ *   {{ craft.paperclip.html(htmlString).download('document.pdf') }}
+ *   {{ craft.paperclip.url('https://example.com').save('@storage/page.pdf') }}
  */
 class PdfVariable
 {
-    public function view(string $template, array $variables = []): PdfBuilder
+    public function view(string $template, array $variables = []): CraftPdfBuilder
     {
-        return PdfBuilder::view($template, $variables);
+        return CraftPdfBuilder::view($template, $variables);
     }
 
-    public function html(string $html): PdfBuilder
+    public function html(string $html): CraftPdfBuilder
     {
-        return PdfBuilder::html($html);
+        return CraftPdfBuilder::html($html);
     }
 
-    public function url(string $url): PdfBuilder
+    public function url(string $url): CraftPdfBuilder
     {
-        return PdfBuilder::url($url);
+        return CraftPdfBuilder::url($url);
     }
 }

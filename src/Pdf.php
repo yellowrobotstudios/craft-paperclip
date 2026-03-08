@@ -12,6 +12,6 @@ namespace yellowrobot\paperclip;
  *   Pdf::html($html)->download('document.pdf');
  *   Pdf::url('https://example.com')->inline();
  */
-class Pdf extends PdfBuilder
+class Pdf extends CraftPdfBuilder
 {
 }

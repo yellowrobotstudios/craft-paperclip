@@ -5,6 +5,7 @@ namespace yellowrobot\paperclip;
 use Craft;
 use craft\base\Model;
 use craft\base\Plugin;
+use craft\helpers\App;
 use craft\web\twig\variables\CraftVariable;
 use yellowrobot\paperclip\drivers\BrowsershotDriver;
 use yellowrobot\paperclip\drivers\CloudflareDriver;
@@ -76,7 +77,7 @@ class Paperclip extends Plugin
      */
     public function getDriver(?string $handle = null): PdfDriverInterface
     {
-        $handle = $handle ?? $this->getSettings()->driver;
+        $handle = $handle ?? App::parseEnv($this->getSettings()->driver);
 
         if (!isset($this->drivers[$handle])) {
             throw new \RuntimeException(
@@ -85,6 +86,16 @@ class Paperclip extends Plugin
         }
 
         $class = $this->drivers[$handle];
+
+        if ($handle === 'dompdf') {
+            $settings = $this->getSettings();
+            return new $class([
+                'fontDir' => App::parseEnv($settings->dompdfFontDir),
+                'defaultFont' => App::parseEnv($settings->dompdfDefaultFont),
+                'dpi' => $settings->dompdfDpi,
+            ]);
+        }
+
         return new $class();
     }
 

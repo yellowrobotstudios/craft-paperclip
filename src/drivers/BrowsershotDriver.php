@@ -2,6 +2,7 @@
 
 namespace yellowrobot\paperclip\drivers;
 
+use craft\helpers\App;
 use yellowrobot\paperclip\Paperclip;
 
 class BrowsershotDriver implements PdfDriverInterface
@@ -186,23 +187,26 @@ class BrowsershotDriver implements PdfDriverInterface
         // Apply plugin settings
         $settings = Paperclip::$plugin->getSettings();
 
-        if ($settings->nodePath) {
-            $browsershot->setNodeBinary($settings->nodePath);
+        $nodePath = App::parseEnv($settings->nodePath);
+        if ($nodePath) {
+            $browsershot->setNodeBinary($nodePath);
         }
 
-        if ($settings->npmPath) {
-            $browsershot->setNpmBinary($settings->npmPath);
+        $npmPath = App::parseEnv($settings->npmPath);
+        if ($npmPath) {
+            $browsershot->setNpmBinary($npmPath);
         }
 
-        if ($settings->chromePath) {
-            $browsershot->setChromePath($settings->chromePath);
+        $chromePath = App::parseEnv($settings->chromePath);
+        if ($chromePath) {
+            $browsershot->setChromePath($chromePath);
         }
 
-        if ($settings->noSandbox) {
+        if (App::parseBooleanEnv($settings->noSandbox)) {
             $browsershot->noSandbox();
         }
 
-        $browsershot->timeout($settings->timeout);
+        $browsershot->timeout((int) App::parseEnv($settings->timeout));
 
         // Wait for web fonts and async resources to finish loading
         $browsershot->waitUntilNetworkIdle();

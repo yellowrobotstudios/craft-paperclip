@@ -19,7 +19,7 @@ class Settings extends Model
     /**
      * Timeout in seconds for PDF generation (shared across drivers)
      */
-    public int $timeout = 60;
+    public string|int $timeout = 60;
 
     // ------------------------------------------------------------------
     // DOMPDF settings
@@ -62,7 +62,7 @@ class Settings extends Model
     /**
      * Whether to run Chrome in no-sandbox mode
      */
-    public bool $noSandbox = false;
+    public string|bool $noSandbox = false;
 
     // ------------------------------------------------------------------
     // Gotenberg settings
@@ -86,7 +86,7 @@ class Settings extends Model
     /**
      * Timeout override for Gotenberg (uses general timeout if null)
      */
-    public ?int $gotenbergTimeout = null;
+    public string|int|null $gotenbergTimeout = null;
 
     // ------------------------------------------------------------------
     // Cloudflare Browser Rendering settings
@@ -114,7 +114,7 @@ class Settings extends Model
     /**
      * Timeout override for WeasyPrint (uses general timeout if null)
      */
-    public ?int $weasyprintTimeout = null;
+    public string|int|null $weasyprintTimeout = null;
 
     public function rules(): array
     {

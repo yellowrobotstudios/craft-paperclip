@@ -2,26 +2,19 @@
 
 namespace yellowrobot\paperclip;
 
-use Craft;
-use craft\elements\Asset;
-use craft\helpers\Assets;
 use yellowrobot\paperclip\drivers\PdfDriverInterface;
-use yii\base\InvalidConfigException;
 
 /**
  * Fluent PDF builder with driver-based rendering
  *
  * Usage:
- *   Pdf::view('_pdfs/invoice', ['order' => $order])->save('invoice.pdf');
- *   Pdf::html($htmlString)->inline();
- *   Pdf::url('https://example.com')->download('page.pdf');
+ *   PdfBuilder::html($htmlString)->withDriver(new DompdfDriver())->pdf();
+ *   PdfBuilder::html($htmlString)->withDriver($driver)->save('/tmp/output.pdf');
  */
 class PdfBuilder
 {
     private ?string $html = null;
     private ?string $url = null;
-    private ?string $template = null;
-    private array $variables = [];
 
     private ?string $format = null;
     private ?float $paperWidth = null;
@@ -37,27 +30,18 @@ class PdfBuilder
     private ?float $pdfScale = null;
     private bool $isTagged = false;
 
+    protected ?PdfDriverInterface $driver = null;
+
     // ------------------------------------------------------------------
     // Static factory methods
     // ------------------------------------------------------------------
 
     /**
-     * Create PDF from a Twig template
-     */
-    public static function view(string $template, array $variables = []): self
-    {
-        $instance = new self();
-        $instance->template = $template;
-        $instance->variables = $variables;
-        return $instance;
-    }
-
-    /**
      * Create PDF from an HTML string
      */
-    public static function html(string $html): self
+    public static function html(string $html): static
     {
-        $instance = new self();
+        $instance = new static();
         $instance->html = $html;
         return $instance;
     }
@@ -65,11 +49,24 @@ class PdfBuilder
     /**
      * Create PDF from a URL
      */
-    public static function url(string $url): self
+    public static function url(string $url): static
     {
-        $instance = new self();
+        $instance = new static();
         $instance->url = $url;
         return $instance;
+    }
+
+    // ------------------------------------------------------------------
+    // Driver configuration
+    // ------------------------------------------------------------------
+
+    /**
+     * Set the PDF driver to use for rendering
+     */
+    public function withDriver(PdfDriverInterface $driver): static
+    {
+        $this->driver = $driver;
+        return $this;
     }
 
     // ------------------------------------------------------------------
@@ -79,7 +76,7 @@ class PdfBuilder
     /**
      * Set page format (Letter, A4, Legal, etc.)
      */
-    public function format(string $format): self
+    public function format(string $format): static
     {
         $this->format = $format;
         return $this;
@@ -88,7 +85,7 @@ class PdfBuilder
     /**
      * Set custom page size
      */
-    public function paperSize(float $width, float $height, string $unit = 'mm'): self
+    public function paperSize(float $width, float $height, string $unit = 'mm'): static
     {
         $this->paperWidth = $width;
         $this->paperHeight = $height;
@@ -99,7 +96,7 @@ class PdfBuilder
     /**
      * Set landscape orientation
      */
-    public function landscape(bool $landscape = true): self
+    public function landscape(bool $landscape = true): static
     {
         $this->isLandscape = $landscape;
         return $this;
@@ -108,7 +105,7 @@ class PdfBuilder
     /**
      * Set portrait orientation (default)
      */
-    public function portrait(): self
+    public function portrait(): static
     {
         $this->isLandscape = false;
         return $this;
@@ -121,7 +118,7 @@ class PdfBuilder
     /**
      * Set all margins explicitly
      */
-    public function margins(float $top, float $right, float $bottom, float $left, string $unit = 'mm'): self
+    public function margins(float $top, float $right, float $bottom, float $left, string $unit = 'mm'): static
     {
         $this->margins = [$top, $right, $bottom, $left];
         $this->marginUnit = $unit;
@@ -134,7 +131,7 @@ class PdfBuilder
      * - 2 values: vertical, horizontal
      * - 4 values: top, right, bottom, left
      */
-    public function margin(float ...$values): self
+    public function margin(float ...$values): static
     {
         $count = count($values);
 
@@ -145,7 +142,7 @@ class PdfBuilder
         } elseif ($count === 4) {
             $this->margins = $values;
         } else {
-            throw new InvalidConfigException('margin() accepts 1, 2, or 4 values');
+            throw new \InvalidArgumentException('margin() accepts 1, 2, or 4 values');
         }
 
         return $this;
@@ -158,7 +155,7 @@ class PdfBuilder
     /**
      * Set custom header HTML
      */
-    public function headerHtml(string $html): self
+    public function headerHtml(string $html): static
     {
         $this->headerHtml = $html;
         return $this;
@@ -167,27 +164,9 @@ class PdfBuilder
     /**
      * Set custom footer HTML
      */
-    public function footerHtml(string $html): self
+    public function footerHtml(string $html): static
     {
         $this->footerHtml = $html;
-        return $this;
-    }
-
-    /**
-     * Set header from a Twig template
-     */
-    public function headerView(string $template, array $variables = []): self
-    {
-        $this->headerHtml = $this->renderTwigTemplate($template, $variables);
-        return $this;
-    }
-
-    /**
-     * Set footer from a Twig template
-     */
-    public function footerView(string $template, array $variables = []): self
-    {
-        $this->footerHtml = $this->renderTwigTemplate($template, $variables);
         return $this;
     }
 
@@ -198,7 +177,7 @@ class PdfBuilder
     /**
      * Only include specific pages (e.g., '1-5, 8, 11-13')
      */
-    public function pages(string $pages): self
+    public function pages(string $pages): static
     {
         $this->pages = $pages;
         return $this;
@@ -207,7 +186,7 @@ class PdfBuilder
     /**
      * Set zoom scale (0.1 to 2.0, default 1.0)
      */
-    public function scale(float $scale): self
+    public function scale(float $scale): static
     {
         $this->pdfScale = $scale;
         return $this;
@@ -216,7 +195,7 @@ class PdfBuilder
     /**
      * Include background graphics
      */
-    public function showBackground(bool $show = true): self
+    public function showBackground(bool $show = true): static
     {
         $this->showBackgroundGraphics = $show;
         return $this;
@@ -225,7 +204,7 @@ class PdfBuilder
     /**
      * Create tagged/accessible PDF
      */
-    public function tagged(bool $tagged = true): self
+    public function tagged(bool $tagged = true): static
     {
         $this->isTagged = $tagged;
         return $this;
@@ -257,118 +236,54 @@ class PdfBuilder
     /**
      * Save PDF to a file path
      *
-     * @param string $path File path (supports Craft aliases like @storage)
-     * @return string The resolved file path
+     * @param string $path File path
+     * @return string The file path
      */
     public function save(string $path): string
     {
-        $resolvedPath = Craft::getAlias($path);
-
-        $dir = dirname($resolvedPath);
+        $dir = dirname($path);
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
 
-        file_put_contents($resolvedPath, $this->pdf());
+        file_put_contents($path, $this->pdf());
 
-        return $resolvedPath;
+        return $path;
+    }
+
+    // ------------------------------------------------------------------
+    // Protected methods (override points for CraftPdfBuilder)
+    // ------------------------------------------------------------------
+
+    /**
+     * Resolve the PDF driver to use for rendering
+     */
+    protected function resolveDriver(): PdfDriverInterface
+    {
+        if ($this->driver) {
+            return $this->driver;
+        }
+
+        throw new \RuntimeException('No PDF driver configured. Use withDriver() to set one.');
     }
 
     /**
-     * Save PDF as a Craft asset in the specified volume
-     *
-     * @param string $volumeHandle The volume handle
-     * @param string $filename The filename for the asset
-     * @param string $subpath Optional subfolder path within the volume
-     * @param bool $overwrite Whether to overwrite an existing asset with the same name
-     * @return Asset The created/updated asset
+     * Get the default page format
      */
-    public function toAsset(string $volumeHandle, string $filename, string $subpath = '', bool $overwrite = true): Asset
+    protected function getDefaultFormat(): string
     {
-        $pdf = $this->pdf();
-
-        $volumes = Craft::$app->getVolumes();
-        $volume = $volumes->getVolumeByHandle($volumeHandle);
-
-        if (!$volume) {
-            throw new InvalidConfigException("Volume \"{$volumeHandle}\" not found.");
-        }
-
-        // Normalize subpath
-        $subpath = trim($subpath, '/');
-        $folderPath = $subpath ? $subpath . '/' : '';
-
-        // Ensure the folder exists
-        $assets = Craft::$app->getAssets();
-        $folder = $assets->findFolder([
-            'volumeId' => $volume->id,
-            'path' => $folderPath,
-        ]);
-
-        if (!$folder) {
-            $folder = $assets->ensureFolderByFullPathAndVolume($folderPath, $volume);
-        }
-
-        // Check for existing asset and delete if overwriting
-        if ($overwrite) {
-            $existing = Asset::find()
-                ->volumeId($volume->id)
-                ->folderId($folder->id)
-                ->filename($filename)
-                ->one();
-
-            if ($existing) {
-                Craft::$app->getElements()->deleteElement($existing);
-            }
-        }
-
-        // Create new asset (matches Enupal's pattern)
-        $tempPath = Assets::tempFilePath(pathinfo($filename, PATHINFO_EXTENSION));
-        file_put_contents($tempPath, $pdf);
-
-        $asset = new Asset();
-        $asset->tempFilePath = $tempPath;
-        $asset->filename = $filename;
-        $asset->newFolderId = $folder->id;
-        $asset->volumeId = $folder->volumeId;
-        $asset->setScenario(Asset::SCENARIO_CREATE);
-        $asset->avoidFilenameConflicts = true;
-
-        Craft::$app->getElements()->saveElement($asset);
-
-        return $asset;
+        return 'Letter';
     }
 
     /**
-     * Stream PDF inline to browser (view in browser)
+     * Resolve the HTML content for rendering
      */
-    public function inline(?string $filename = null): void
+    protected function resolveHtml(): string
     {
-        $pdf = $this->pdf();
-        $response = Craft::$app->getResponse();
-
-        $response->headers->set('Content-Type', 'application/pdf');
-        if ($filename) {
-            $response->headers->set('Content-Disposition', 'inline; filename="' . $filename . '"');
+        if ($this->html === null) {
+            throw new \RuntimeException('No HTML content set. Use html() or url() to set content.');
         }
-        $response->content = $pdf;
-
-        Craft::$app->end();
-    }
-
-    /**
-     * Stream PDF as download
-     */
-    public function download(string $filename): void
-    {
-        $pdf = $this->pdf();
-        $response = Craft::$app->getResponse();
-
-        $response->headers->set('Content-Type', 'application/pdf');
-        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
-        $response->content = $pdf;
-
-        Craft::$app->end();
+        return $this->html;
     }
 
     // ------------------------------------------------------------------
@@ -376,15 +291,7 @@ class PdfBuilder
     // ------------------------------------------------------------------
 
     /**
-     * Resolve the active PDF driver from plugin settings
-     */
-    private function resolveDriver(): PdfDriverInterface
-    {
-        return Paperclip::$plugin->getDriver();
-    }
-
-    /**
-     * Set the source (HTML, URL, or template) on the driver
+     * Set the source (HTML or URL) on the driver
      */
     private function applySource(PdfDriverInterface $driver): void
     {
@@ -393,7 +300,7 @@ class PdfBuilder
             return;
         }
 
-        $html = $this->html ?? $this->renderTemplate();
+        $html = $this->resolveHtml();
         $driver->loadHtml($html);
     }
 
@@ -407,11 +314,10 @@ class PdfBuilder
 
         if ($this->paperWidth && $this->paperHeight) {
             $driver->setPaperSize($this->paperWidth, $this->paperHeight, $this->paperUnit);
-            // Still set orientation via setPaper with default format
-            $format = $this->format ?? Paperclip::$plugin->getSettings()->defaultFormat;
+            $format = $this->format ?? $this->getDefaultFormat();
             $driver->setPaper($format, $orientation);
         } else {
-            $format = $this->format ?? Paperclip::$plugin->getSettings()->defaultFormat;
+            $format = $this->format ?? $this->getDefaultFormat();
             $driver->setPaper($format, $orientation);
         }
 
@@ -449,25 +355,5 @@ class PdfBuilder
         if ($this->isTagged) {
             $driver->setTagged(true);
         }
-    }
-
-    /**
-     * Render the configured Twig template
-     */
-    private function renderTemplate(): string
-    {
-        return $this->renderTwigTemplate($this->template, $this->variables);
-    }
-
-    /**
-     * Render any Twig template with variables
-     */
-    private function renderTwigTemplate(string $template, array $variables): string
-    {
-        $view = Craft::$app->getView();
-
-        // renderPageTemplate processes Yii head/body block tokens,
-        // preventing CDATA placeholders from leaking into the HTML
-        return $view->renderPageTemplate($template, $variables, $view::TEMPLATE_MODE_SITE);
     }
 }
