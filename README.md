@@ -111,6 +111,19 @@ return [
 
 All settings support environment variables via the control panel or config file.
 
+### Cloudflare driver notes
+
+The Cloudflare Browser Rendering API renders your HTML in Cloudflare's cloud, so any images, fonts, or stylesheets referenced by URL must be **publicly reachable from the internet**. Assets served from a local dev domain (e.g. `https://mysite.ddev.site`) will fail to load and images will fall back to their ALT text.
+
+For local development, inline assets as data URLs instead:
+
+```twig
+{# e.g. with an asset element #}
+<img src="data:{{ image.mimeType }};base64,{{ image.contents | base64_encode }}" alt="">
+```
+
+Paperclip asks Cloudflare to wait for the network to go idle (`networkidle0`) before capturing the PDF, so publicly-reachable images and fonts are fully loaded in the output.
+
 ## Custom Drivers
 
 Register your own driver via the `EVENT_REGISTER_DRIVERS` event:

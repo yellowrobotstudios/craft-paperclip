@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1 - 2026-06-09
+
+### Fixed
+- Cloudflare driver: PDF options were sent under `pdf_options` instead of `pdfOptions`, which the Browser Rendering API rejects ([#1](https://github.com/yellowrobotstudios/craft-paperclip/issues/1))
+- Cloudflare driver: standard paper sizes are now sent via the API's `format` enum instead of explicit `width`/`height`; explicit dimensions are still used for custom sizes ([#1](https://github.com/yellowrobotstudios/craft-paperclip/issues/1))
+- Cloudflare driver: external images and fonts now finish loading before the PDF is captured (`gotoOptions.waitUntil: networkidle0`) ([#2](https://github.com/yellowrobotstudios/craft-paperclip/issues/2))
+- Cloudflare driver: API error responses now surface Cloudflare's error message instead of a generic Guzzle exception
+
 ## 1.0.0 - 2026-03-09
 
 ### Added

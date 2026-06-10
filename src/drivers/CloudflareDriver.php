@@ -30,20 +30,20 @@ class CloudflareDriver implements PdfDriverInterface
     private bool $tagged = false;
 
     /**
-     * Standard paper sizes in inches [width, height]
+     * Paper formats accepted by the Cloudflare API's `pdfOptions.format` enum
      */
-    private const PAPER_SIZES = [
-        'letter' => [8.5, 11],
-        'legal' => [8.5, 14],
-        'tabloid' => [11, 17],
-        'ledger' => [17, 11],
-        'a0' => [33.1, 46.8],
-        'a1' => [23.4, 33.1],
-        'a2' => [16.5, 23.4],
-        'a3' => [11.7, 16.5],
-        'a4' => [8.27, 11.7],
-        'a5' => [5.83, 8.27],
-        'a6' => [4.13, 5.83],
+    private const FORMATS = [
+        'letter',
+        'legal',
+        'tabloid',
+        'ledger',
+        'a0',
+        'a1',
+        'a2',
+        'a3',
+        'a4',
+        'a5',
+        'a6',
     ];
 
     public function loadHtml(string $html): void
@@ -131,17 +131,49 @@ class CloudflareDriver implements PdfDriverInterface
             $accountId
         );
 
+        $body = $this->buildRequestBody();
+
+        $client = Craft::createGuzzleClient([
+            'timeout' => (int) App::parseEnv($settings->timeout),
+        ]);
+
+        $response = $client->post($endpoint, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $apiToken,
+                'Content-Type' => 'application/json',
+            ],
+            'json' => $body,
+            'http_errors' => false,
+        ]);
+
+        if ($response->getStatusCode() !== 200) {
+            throw new \RuntimeException(
+                'Cloudflare Browser Rendering returned HTTP ' . $response->getStatusCode()
+                . ': ' . $response->getBody()->getContents()
+            );
+        }
+
+        return $response->getBody()->getContents();
+    }
+
+    /**
+     * Builds the JSON request body for the Browser Rendering `/pdf` endpoint.
+     *
+     * @see https://developers.cloudflare.com/api/resources/browser_rendering/subresources/pdf/methods/create/
+     */
+    public function buildRequestBody(): array
+    {
         // Build the PDF options payload
         $pdfOptions = [];
 
-        // Paper size
+        // Paper size — standard formats use the API's `format` enum; explicit
+        // width/height is reserved for custom sizes
         if ($this->customSize) {
             $pdfOptions['width'] = $this->customSize['width'] . 'in';
             $pdfOptions['height'] = $this->customSize['height'] . 'in';
         } else {
-            $size = self::PAPER_SIZES[strtolower($this->format)] ?? self::PAPER_SIZES['letter'];
-            $pdfOptions['width'] = $size[0] . 'in';
-            $pdfOptions['height'] = $size[1] . 'in';
+            $format = strtolower($this->format);
+            $pdfOptions['format'] = in_array($format, self::FORMATS, true) ? $format : 'letter';
         }
 
         // Orientation
@@ -186,7 +218,13 @@ class CloudflareDriver implements PdfDriverInterface
         }
 
         // Build request body
-        $body = ['pdf_options' => $pdfOptions];
+        $body = ['pdfOptions' => $pdfOptions];
+
+        // Wait for external resources (images, fonts) to finish loading
+        // before the PDF is captured
+        $body['gotoOptions'] = [
+            'waitUntil' => ['load', 'networkidle0'],
+        ];
 
         if ($this->url) {
             $body['url'] = $this->url;
@@ -194,26 +232,7 @@ class CloudflareDriver implements PdfDriverInterface
             $body['html'] = $this->html ?? '';
         }
 
-        $client = Craft::createGuzzleClient([
-            'timeout' => (int) App::parseEnv($settings->timeout),
-        ]);
-
-        $response = $client->post($endpoint, [
-            'headers' => [
-                'Authorization' => 'Bearer ' . $apiToken,
-                'Content-Type' => 'application/json',
-            ],
-            'json' => $body,
-        ]);
-
-        if ($response->getStatusCode() !== 200) {
-            throw new \RuntimeException(
-                'Cloudflare Browser Rendering returned HTTP ' . $response->getStatusCode()
-                . ': ' . $response->getBody()->getContents()
-            );
-        }
-
-        return $response->getBody()->getContents();
+        return $body;
     }
 
     public function supports(string $feature): bool
