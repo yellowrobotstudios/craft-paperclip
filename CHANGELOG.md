@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0 - 2026-06-10
+
+### Added
+- `cache($duration)` builder method — caches the rendered PDF in Craft's data cache, keyed on the resolved content, driver, and all page options
+- `driver($handle)` builder method — override the configured driver for a single PDF from Twig or PHP
+- `craft.paperclip.dataUrl()` Twig helper — inline an asset element or file path as a base64 data URL for embedding images and fonts in PDF templates
+
+### Fixed
+- `inline()` and `download()` now build the `Content-Disposition` header via Yii's response helpers, escaping quotes/control characters and adding an RFC 5987 fallback for non-ASCII filenames
+
 ## 1.0.1 - 2026-06-09
 
 ### Fixed

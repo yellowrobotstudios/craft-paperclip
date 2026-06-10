@@ -242,4 +242,70 @@ class PdfBuilderTest extends TestCase
             @rmdir($tmpDir);
         }
     }
+
+    // ------------------------------------------------------------------
+    // Options fingerprint (cache keys)
+    // ------------------------------------------------------------------
+
+    private function fingerprintOf(PdfBuilder $builder): array
+    {
+        $exposed = new class extends PdfBuilder {
+            public function expose(PdfBuilder $builder): array
+            {
+                return $builder->getOptionsFingerprint();
+            }
+        };
+
+        return $exposed->expose($builder);
+    }
+
+    public function testFingerprintIsStableForSameOptions(): void
+    {
+        $a = PdfBuilder::html('<p>Hi</p>')->format('A4')->landscape()->margin(10);
+        $b = PdfBuilder::html('<p>Hi</p>')->format('A4')->landscape()->margin(10);
+
+        $this->assertSame($this->fingerprintOf($a), $this->fingerprintOf($b));
+    }
+
+    public function testFingerprintChangesWhenOptionsChange(): void
+    {
+        $base = PdfBuilder::html('<p>Hi</p>')->format('A4');
+
+        $variants = [
+            PdfBuilder::html('<p>Hi</p>')->format('Letter'),
+            PdfBuilder::html('<p>Hi</p>')->format('A4')->landscape(),
+            PdfBuilder::html('<p>Hi</p>')->format('A4')->margin(5),
+            PdfBuilder::html('<p>Hi</p>')->format('A4')->scale(0.8),
+            PdfBuilder::html('<p>Hi</p>')->format('A4')->headerHtml('<b>H</b>'),
+            PdfBuilder::url('https://example.com')->format('A4'),
+        ];
+
+        foreach ($variants as $i => $variant) {
+            $this->assertNotSame(
+                $this->fingerprintOf($base),
+                $this->fingerprintOf($variant),
+                "Variant {$i} should produce a different fingerprint"
+            );
+        }
+    }
+
+    public function testFingerprintCoversAllOptionProperties(): void
+    {
+        // Every private option on PdfBuilder (except the html source, which
+        // is keyed separately) must appear in the fingerprint, so new options
+        // can't silently poison cached PDFs
+        $fingerprint = $this->fingerprintOf(PdfBuilder::html('<p>Hi</p>'));
+
+        $expected = array_filter(
+            array_map(
+                fn(\ReflectionProperty $p) => $p->getName(),
+                (new \ReflectionClass(PdfBuilder::class))->getProperties(\ReflectionProperty::IS_PRIVATE)
+            ),
+            fn(string $name) => $name !== 'html'
+        );
+
+        foreach ($expected as $property) {
+            $this->assertArrayHasKey($property, $fingerprint);
+        }
+    }
 }

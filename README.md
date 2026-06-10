@@ -78,6 +78,8 @@ Pdf::url('https://example.com')->inline();
 | `scale(1.5)` | Zoom scale (0.1–2.0) |
 | `showBackground(true)` | Include background graphics |
 | `tagged(true)` | Generate tagged/accessible PDF |
+| `driver('gotenberg')` | Override the configured driver for this PDF |
+| `cache(3600)` | Cache the rendered PDF (seconds) |
 
 ### Output Methods
 
@@ -95,6 +97,38 @@ Pdf::url('https://example.com')->inline();
 ```php
 $asset = Pdf::view('_pdfs/report', $vars)
     ->toAsset('documents', 'report.pdf', 'reports/2026');
+```
+
+### Caching
+
+PDF generation is slow — cache the result when the same document is requested repeatedly:
+
+```twig
+{{ craft.paperclip.view('_pdfs/invoice', { order: order })
+    .cache(3600)
+    .inline('invoice.pdf') }}
+```
+
+The cache key covers the rendered content and every page option, so changing the template output or any setting automatically generates a fresh PDF. Cached PDFs are stored in Craft's data cache.
+
+### Per-PDF driver
+
+Override the globally-configured driver for a single document:
+
+```twig
+{{ craft.paperclip.view('_pdfs/receipt').driver('dompdf').inline() }}
+```
+
+### Inlining images and fonts
+
+Embed a file as a base64 data URL — useful when the rendering engine can't reach your asset URLs (e.g. cloud drivers rendering against a local dev site):
+
+```twig
+{# An asset element #}
+<img src="{{ craft.paperclip.dataUrl(entry.image.one()) }}" alt="">
+
+{# Or a file path (supports aliases) #}
+<img src="{{ craft.paperclip.dataUrl('@webroot/images/logo.png') }}" alt="">
 ```
 
 ## Configuration
@@ -118,8 +152,7 @@ The Cloudflare Browser Rendering API renders your HTML in Cloudflare's cloud, so
 For local development, inline assets as data URLs instead:
 
 ```twig
-{# e.g. with an asset element #}
-<img src="data:{{ image.mimeType }};base64,{{ image.contents | base64_encode }}" alt="">
+<img src="{{ craft.paperclip.dataUrl(image) }}" alt="">
 ```
 
 Paperclip asks Cloudflare to wait for the network to go idle (`networkidle0`) before capturing the PDF, so publicly-reachable images and fonts are fully loaded in the output.

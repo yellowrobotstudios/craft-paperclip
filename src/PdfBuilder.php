@@ -286,6 +286,29 @@ class PdfBuilder
         return $this->html;
     }
 
+    /**
+     * All options that affect rendered output, for use in cache keys
+     */
+    protected function getOptionsFingerprint(): array
+    {
+        return [
+            'url' => $this->url,
+            'format' => $this->format,
+            'paperWidth' => $this->paperWidth,
+            'paperHeight' => $this->paperHeight,
+            'paperUnit' => $this->paperUnit,
+            'isLandscape' => $this->isLandscape,
+            'margins' => $this->margins,
+            'marginUnit' => $this->marginUnit,
+            'headerHtml' => $this->headerHtml,
+            'footerHtml' => $this->footerHtml,
+            'showBackgroundGraphics' => $this->showBackgroundGraphics,
+            'pages' => $this->pages,
+            'pdfScale' => $this->pdfScale,
+            'isTagged' => $this->isTagged,
+        ];
+    }
+
     // ------------------------------------------------------------------
     // Internal methods
     // ------------------------------------------------------------------

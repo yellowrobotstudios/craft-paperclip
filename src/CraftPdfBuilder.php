@@ -20,6 +20,7 @@ class CraftPdfBuilder extends PdfBuilder
 {
     private ?string $template = null;
     private array $variables = [];
+    private ?int $cacheDuration = null;
 
     // ------------------------------------------------------------------
     // Static factory methods
@@ -34,6 +35,53 @@ class CraftPdfBuilder extends PdfBuilder
         $instance->template = $template;
         $instance->variables = $variables;
         return $instance;
+    }
+
+    // ------------------------------------------------------------------
+    // Driver and caching
+    // ------------------------------------------------------------------
+
+    /**
+     * Use a registered driver by handle (e.g. 'dompdf', 'gotenberg'),
+     * overriding the globally-configured driver for this PDF only
+     */
+    public function driver(string $handle): static
+    {
+        return $this->withDriver(Paperclip::$plugin->getDriver($handle));
+    }
+
+    /**
+     * Cache the rendered PDF, keyed on the resolved content and all options.
+     *
+     * @param int $duration Cache duration in seconds
+     */
+    public function cache(int $duration = 3600): static
+    {
+        $this->cacheDuration = $duration;
+        return $this;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function pdf(): string
+    {
+        if ($this->cacheDuration === null) {
+            return parent::pdf();
+        }
+
+        $fingerprint = $this->getOptionsFingerprint();
+        $key = 'paperclip:' . md5(serialize([
+            get_class($this->resolveDriver()),
+            $fingerprint['url'] ?? $this->resolveHtml(),
+            $fingerprint,
+        ]));
+
+        return Craft::$app->getCache()->getOrSet(
+            $key,
+            fn(): string => parent::pdf(),
+            $this->cacheDuration
+        );
     }
 
     // ------------------------------------------------------------------
@@ -68,11 +116,17 @@ class CraftPdfBuilder extends PdfBuilder
         $pdf = $this->pdf();
         $response = Craft::$app->getResponse();
 
-        $response->headers->set('Content-Type', 'application/pdf');
         if ($filename) {
-            $response->headers->set('Content-Disposition', 'inline; filename="' . $filename . '"');
+            // sendContentAsFile builds a sanitized Content-Disposition header
+            // (escaped quotes, RFC 5987 fallback for non-ASCII filenames)
+            $response->sendContentAsFile($pdf, $filename, [
+                'mimeType' => 'application/pdf',
+                'inline' => true,
+            ]);
+        } else {
+            $response->headers->set('Content-Type', 'application/pdf');
+            $response->content = $pdf;
         }
-        $response->content = $pdf;
 
         Craft::$app->end();
     }
@@ -85,9 +139,10 @@ class CraftPdfBuilder extends PdfBuilder
         $pdf = $this->pdf();
         $response = Craft::$app->getResponse();
 
-        $response->headers->set('Content-Type', 'application/pdf');
-        $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
-        $response->content = $pdf;
+        $response->sendContentAsFile($pdf, $filename, [
+            'mimeType' => 'application/pdf',
+            'inline' => false,
+        ]);
 
         Craft::$app->end();
     }
